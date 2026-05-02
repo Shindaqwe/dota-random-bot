@@ -1,23 +1,18 @@
 import os
 import json
 import random
-import asyncio
 from aiogram import Bot, Dispatcher, types
-from aiogram.filters import Command
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.filters import Command
 
-# ================= НАСТРОЙКИ =================
-BOT_TOKEN = os.getenv("BOT_TOKEN")
-if not BOT_TOKEN:
-    print("❌ ОШИБКА: Не указан BOT_TOKEN в переменных окружения!")
-    exit(1)
+# Настройки
+BOT_TOKEN = "8705011374:AAE153SIL2UURVUKGB8zkma-G4P7N7-RKJo"  # Вставь свой токен
 
-# КАНАЛЫ ДЛЯ ПОДПИСКИ (активные)
+# Каналы для подписки
 CHANNELS = [
-    "shindaqwe",           # ✅ Активен
-    # "channel_2",          #  Отключен (раскомментируй, когда нужно)
+    "shindaqwe",
+    # "channel_2",
 ]
-# =============================================
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
@@ -93,19 +88,26 @@ async def handle_check(callback: types.CallbackQuery):
 async def handle_random(callback: types.CallbackQuery):
     choice = callback.data
     if choice == "hero":
-        res, txt = random.choice(HEROES), f"🎲 Герой: **{random.choice(HEROES)}**"
+        txt = f"🎲 Герой: **{random.choice(HEROES)}**"
     elif choice == "item":
-        res, txt = random.choice(ITEMS), f"🎒 Предмет: **{random.choice(ITEMS)}**"
+        txt = f"🎒 Предмет: **{random.choice(ITEMS)}**"
     else:
-        res, txt = random.choice(LETTERS), f"🔤 Буква: **{random.choice(LETTERS)}**"
+        txt = f"🔤 Буква: **{random.choice(LETTERS)}**"
     await callback.message.answer(txt, parse_mode="Markdown")
     await callback.message.answer("🔄 Ещё?", reply_markup=get_main_keyboard())
     await callback.answer()
 
-async def main():
+async def on_startup(dp):
     print("✅ Бот запущен на Render!")
-    print(f"📢 Каналов: {len(CHANNELS)} | {' | '.join('@'+c for c in CHANNELS)}")
-    await dp.start_polling(bot)
+    print(f"📢 Каналов: {len(CHANNELS)}")
+
+async def on_shutdown(dp):
+    print("⏹️ Бот остановлен")
+    await bot.close()
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    from aiogram.executor import Executor
+    executor = Executor(dp, skip_updates=True)
+    executor.on_startup(on_startup)
+    executor.on_shutdown(on_shutdown)
+    executor.start_polling()
