@@ -2,20 +2,19 @@ import os
 import json
 import random
 from aiogram import Bot, Dispatcher, types
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-from aiogram.filters import Command
+from aiogram.utils import executor
 
-# Настройки
-BOT_TOKEN = "8705011374:AAE153SIL2UURVUKGB8zkma-G4P7N7-RKJo"  # Вставь свой токен
+# ================= НАСТРОЙКИ =================
+BOT_TOKEN = "8705011374:AAE153SIL2UURVUKGBBzkma-G4P7N7-RKJo"  # Твой токен
 
-# Каналы для подписки
 CHANNELS = [
     "shindaqwe",
-    # "channel_2",
+    # "channel_2",  # Раскомментируй, когда добавишь новый
 ]
+# =============================================
 
 bot = Bot(token=BOT_TOKEN)
-dp = Dispatcher()
+dp = Dispatcher(bot)
 
 # Загрузка данных
 with open("heroes.json", "r", encoding="utf-8") as f:
@@ -33,19 +32,19 @@ def get_gate_keyboard():
             idx = i + j
             if idx < len(CHANNELS):
                 ch = CHANNELS[idx]
-                row.append(InlineKeyboardButton(
+                row.append(types.InlineKeyboardButton(
                     text=f"Подписаться #{idx + 1}",
                     url=f"https://t.me/{ch}"
                 ))
         kb.append(row)
-    kb.append([InlineKeyboardButton(text="Проверить ✅", callback_data="check_subs")])
-    return InlineKeyboardMarkup(inline_keyboard=kb)
+    kb.append([types.InlineKeyboardButton(text="Проверить ✅", callback_data="check_subs")])
+    return types.InlineKeyboardMarkup(inline_keyboard=kb)
 
 def get_main_keyboard():
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🎲 Случайный герой", callback_data="hero")],
-        [InlineKeyboardButton(text="🎒 Случайный предмет", callback_data="item")],
-        [InlineKeyboardButton(text="🔤 Случайная буква", callback_data="letter")]
+    return types.InlineKeyboardMarkup(inline_keyboard=[
+        [types.InlineKeyboardButton(text="🎲 Случайный герой", callback_data="hero")],
+        [types.InlineKeyboardButton(text="🎒 Случайный предмет", callback_data="item")],
+        [types.InlineKeyboardButton(text="🔤 Случайная буква", callback_data="letter")]
     ])
 
 async def is_subscribed_to_all(user_id: int) -> bool:
@@ -58,7 +57,7 @@ async def is_subscribed_to_all(user_id: int) -> bool:
             return False
     return True
 
-@dp.message(Command("start"))
+@dp.message_handler(commands=['start'])
 async def cmd_start(message: types.Message):
     if await is_subscribed_to_all(message.from_user.id):
         await message.answer(
@@ -72,7 +71,7 @@ async def cmd_start(message: types.Message):
             reply_markup=get_gate_keyboard()
         )
 
-@dp.callback_query(lambda c: c.data == "check_subs")
+@dp.callback_query_handler(lambda c: c.data == "check_subs")
 async def handle_check(callback: types.CallbackQuery):
     if await is_subscribed_to_all(callback.from_user.id):
         await callback.message.edit_text("✅ Доступ открыт!")
@@ -84,7 +83,7 @@ async def handle_check(callback: types.CallbackQuery):
     else:
         await callback.answer("❌ Не все каналы подписаны!", show_alert=True)
 
-@dp.callback_query(lambda c: c.data in ["hero", "item", "letter"])
+@dp.callback_query_handler(lambda c: c.data in ["hero", "item", "letter"])
 async def handle_random(callback: types.CallbackQuery):
     choice = callback.data
     if choice == "hero":
@@ -99,15 +98,7 @@ async def handle_random(callback: types.CallbackQuery):
 
 async def on_startup(dp):
     print("✅ Бот запущен на Render!")
-    print(f"📢 Каналов: {len(CHANNELS)}")
+    print(f"📢 Каналов: {len(CHANNELS)} | {' | '.join('@'+c for c in CHANNELS)}")
 
-async def on_shutdown(dp):
-    print("⏹️ Бот остановлен")
-    await bot.close()
-
-if __name__ == "__main__":
-    from aiogram.executor import Executor
-    executor = Executor(dp, skip_updates=True)
-    executor.on_startup(on_startup)
-    executor.on_shutdown(on_shutdown)
-    executor.start_polling()
+if __name__ == '__main__':
+    executor.start_polling(dp, skip_updates=True, on_startup=on_startup)
